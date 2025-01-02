@@ -1,0 +1,40 @@
+---
+- name: Set some initial facts
+  ansible.builtin.set_fact:
+    caddy_path: "/opt/docker/caddy"
+
+- name: Create caddy network
+  community.docker.docker_network:
+    name: caddy
+
+- name: Create Caddy directory
+  ansible.builtin.file:
+    path: "{{ caddy_path }}"
+    state: directory
+    mode: 0755
+
+- name: Create Caddyfile
+  ansible.builtin.file:
+    path: "{{ caddy_path }}/Caddyfile"
+    state: touch
+    mode: 0644
+
+- name: Create Caddy container
+  community.docker.docker_container:
+    name: caddy
+    image: caddy:latest
+    pull: true
+    state: started
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - "{{ caddy_path }}/Caddyfile:/etc/caddy/Caddyfile"
+      - "{{ caddy_path }}/site:/srv"
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - name: caddy
+    restart_policy: unless-stopped
+  
