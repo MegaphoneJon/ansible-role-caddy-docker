@@ -19,6 +19,17 @@
     state: touch
     mode: 0644
 
+- name: Put VPN restriction snippet in Caddyfile
+  ansible.builtin.blockinfile:
+    marker: "# {mark} VPN restriction snippet"
+    path: "{{ caddy_path }}/Caddyfile"
+    block: |
+      (restricted_to_vpn) {
+        @denied not remote_ip 172.18.0.0/24 {{ greenlist_ips|join(' ') }}
+        abort @denied
+      }
+  notify: restart Caddy
+
 - name: Create Caddy container
   community.docker.docker_container:
     name: caddy
@@ -31,7 +42,9 @@
       - "443:443/udp"
     volumes:
       - "{{ caddy_path }}/Caddyfile:/etc/caddy/Caddyfile"
-      - "{{ caddy_path }}/site:/srv"
+#      - "{{ caddy_path }}/site:/srv"
+      - /var/www:/srv
+      - /var/run/php:/var/run/php
       - caddy_data:/data
       - caddy_config:/config
     networks:
